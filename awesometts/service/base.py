@@ -158,7 +158,7 @@ class Service(object):
         assert isinstance(self.TRAITS, list), \
             "Please specify a TRAITS list for the service"
 
-        self._netops = None
+        self._netops = 0
         self._lame_flags = lame_flags
         self._logger = logger
         self.normalize = normalize

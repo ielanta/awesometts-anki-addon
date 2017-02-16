@@ -23,7 +23,7 @@ Helpful type conversions
 import json
 import re
 
-from PyQt4.QtCore import Qt
+
 
 __all__ = ['compact_json', 'deserialized_dict', 'lax_bool',
            'normalized_ascii', 'nullable_key', 'nullable_int',

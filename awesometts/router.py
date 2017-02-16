@@ -29,14 +29,10 @@ from socket import error as SocketError
 from time import time
 from urllib2 import URLError
 
-from PyQt4 import QtCore, QtGui
-
 from .service import Trait as BaseTrait
 
 __all__ = ['Router']
 
-
-_SIGNAL = QtCore.SIGNAL('awesomeTtsThreadDone')
 
 FAILURE_CACHE_SECS = 3600  # ignore/dump failures from cache after one hour
 
@@ -125,7 +121,6 @@ class Router(object):
         self._config = config
         self._failures = {}
         self._logger = logger
-        self._pool = _Pool(logger)
         self._services = services
         self._temp_dir = temp_dir
 
@@ -880,140 +875,3 @@ class Router(object):
         )
 
 
-class _Pool(QtGui.QWidget):
-    """
-    Managers a pool of worker threads to keep the UI responsive.
-    """
-
-    __slots__ = [
-        '_current_id',  # the last/current worker ID in-use
-        '_logger',      # for writing messages about threads
-        '_threads',     # dict of IDs mapping workers and callbacks in Router
-    ]
-
-    def __init__(self, logger, *args, **kwargs):
-        """
-        Initialize my internal state (next ID and lookup pools for the
-        callbacks and workers).
-        """
-
-        super(_Pool, self).__init__(*args, **kwargs)
-
-        self._current_id = 0
-        self._logger = logger
-        self._threads = {}
-
-    def spawn(self, task, callback):
-        """
-        Create a worker thread for the given task. When the thread
-        completes, the callback will be called.
-        """
-
-        self._current_id += 1
-        thread = self._threads[self._current_id] = {
-            # keeping a reference to worker prevents garbage collection
-            'callback': callback,
-            'done': False,
-            'worker': _Worker(self._current_id, task),
-        }
-
-        self.connect(thread['worker'], _SIGNAL, self._on_worker_signal)
-        thread['worker'].finished.connect(self._on_worker_finished)
-        thread['worker'].start()
-
-        self._logger.debug(
-            "Spawned thread [%d]; pool=%s",
-            self._current_id, self._threads,
-        )
-
-    def _on_worker_signal(self, thread_id, exception=None, stack_trace=None):
-        """
-        When the worker signals it's done with its task, execute the
-        callback that was registered for it, passing on any exception.
-        """
-
-        if exception:
-            if not (hasattr(exception, 'message') and
-                    isinstance(exception.message, basestring) and
-                    exception.message):
-                exception.message = format(exception) or \
-                    "No additional details available"
-
-            self._logger.debug(
-                "Exception from thread [%d] (%s); executing callback\n%s",
-
-                thread_id, exception.message,
-
-                _prefixed(stack_trace)
-                if isinstance(stack_trace, basestring)
-                else "Stack trace unavailable",
-            )
-
-        else:
-            self._logger.debug(
-                "Completion from thread [%d]; executing callback",
-                thread_id,
-            )
-
-        self._threads[thread_id]['callback'](exception)
-        self._threads[thread_id]['done'] = True
-
-    def _on_worker_finished(self):
-        """
-        When the worker is finished, which happens sometime briefly
-        after it's done with its task, delete it from the thread pool if
-        its callback has already executed.
-        """
-
-        thread_ids = [
-            thread_id
-            for thread_id, thread in self._threads.items()
-            if thread['done'] and thread['worker'].isFinished()
-        ]
-
-        if not thread_ids:
-            return
-
-        for thread_id in thread_ids:
-            del self._threads[thread_id]
-
-        self._logger.debug(
-            "Reaped thread%s %s; pool=%s",
-            "s" if len(thread_ids) != 1 else "", thread_ids, self._threads,
-        )
-
-
-class _Worker(QtCore.QThread):
-    """
-    Generic worker for running processes in the background.
-    """
-
-    __slots__ = [
-        '_thread_id',  # my thread ID; used to communicate back to main thread
-        '_task',       # the task I will need to call when run
-    ]
-
-    def __init__(self, thread_id, task):
-        """
-        Save my worker ID and task.
-        """
-
-        super(_Worker, self).__init__()
-
-        self._id = thread_id
-        self._task = task
-
-    def run(self):
-        """
-        Run my assigned task. If an exception is raised, pass it back to
-        the main thread via the callback.
-        """
-
-        try:
-            self._task()
-        except Exception as exception:  # catch all, pylint:disable=W0703
-            from traceback import format_exc
-            self.emit(_SIGNAL, self._id, exception, format_exc())
-            return
-
-        self.emit(_SIGNAL, self._id)

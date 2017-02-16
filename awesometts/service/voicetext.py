@@ -18,15 +18,14 @@
 
 """Service implementation for VoiceText's text-to-speech API"""
 
-from anki.utils import isWin as WIN32, isMac as MACOSX
-
 from .base import Service
 from .common import Trait
+from sys import platform
 
 __all__ = ['VoiceText']
 
 
-API_FORMAT = 'ogg' if WIN32 else 'aac'  # very short AAC files fail on Windows
+API_FORMAT = 'ogg' if platform == "win32" else 'aac'  # very short AAC files fail on Windows
 
 API_REQUIRE = (
     dict(mime='audio/wave', size=2048) if API_FORMAT == 'wav'

@@ -209,6 +209,7 @@ class Google(Service):
 
         subtexts = self.util_split(text, 100)
 
+
         try:
             self._netops += 10 * len(subtexts)
             self.net_download(
