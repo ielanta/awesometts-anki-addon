@@ -16,6 +16,14 @@ def get_options(args):
         print(option)
 
 
+def update_default_options(args):
+    user_options = args.options
+    for option in router.get_options(args.service):
+        if not option.get('key') in user_options.keys() and option.get('default'):
+            user_options[option.get('key')] = option.get('default')
+    return user_options
+
+
 def get_mp3(args):
     try:
         if args.text:
@@ -29,7 +37,7 @@ def get_mp3(args):
     except Exception as e:
         print(e)
     name, service = router._fetch_options_and_extras(args.service)
-    service['instance'].run(text, args.options, args.path)
+    service['instance'].run(text, update_default_options(args), args.path)
 
 
 parser = argparse.ArgumentParser()
