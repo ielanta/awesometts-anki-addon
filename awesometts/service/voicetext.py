@@ -184,7 +184,7 @@ class VoiceText(Service):
                     self.net_download(svc_path, (api_endpoint, parameters),
                                       require=API_REQUIRE, awesome_ua=True)
 
-                    if MACOSX and API_FORMAT == 'aac':  # avoid crashes on OS X
+                    if self.IS_MACOSX and API_FORMAT == 'aac':  # avoid crashes on OS X
                         caf_path = self.path_temp('caf')
                         caf_paths.append(caf_path)
 

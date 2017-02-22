@@ -68,7 +68,7 @@ VERSION = '1.11.0-dev'
 
 WEB = 'https://ankiatts.appspot.com'
 
-AGENT = 'AwesomeTTS (%s)' % (get_platform_info())
+AGENT = 'AwesomeTTS/1.10.0 (Anki 2.0.33; PyQt 4.11.4; %s)' % get_platform_info()
 
 
 # Begin core class initialization and dependency setup, pylint:disable=C0103
